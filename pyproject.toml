@@ -17,6 +17,9 @@ Homepage = "https://github.com/kdoble/claude-gauntlet"
 Issues = "https://github.com/kdoble/claude-gauntlet/issues"
 
 [project.scripts]
+# Primary command is claude-gauntlet: PyPI already has an unrelated `gauntlet`, and the
+# prefixed name is unambiguous. `gauntlet` stays as a compatibility alias.
+claude-gauntlet = "gauntlet:main"
 gauntlet = "gauntlet:main"
 
 # Single-file module. pricing.json / checklist.json are the editable source of truth; the

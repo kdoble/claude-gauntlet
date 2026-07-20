@@ -2,12 +2,14 @@
 """GAUNTLET: per-skill token-efficiency auditor.
 
 Point it at ONE skill or agent (e.g. --skill my-skill). It finds that skill's
-historical runs in the local Claude Code transcripts, reconstructs each run's
-workflow step by step, measures token/cache/cost efficiency across runs, runs a
-waste checklist, and writes one HTML report with ranked recommendations.
+attributed session runs in the local Claude Code transcripts, reconstructs each
+run's workflow step by step, measures token/cache/cost efficiency across runs,
+runs a waste checklist, and writes one HTML report with ranked opportunities.
 
-Stdlib only. Reads counters and labels (model, tool names, file basenames), never
-transcript CONTENT. Internal by default; --shared redacts through a leak guard.
+Stdlib only. It reads and parses your local transcripts; it does not send them
+anywhere and never writes prompt, response, or tool-result content into the report,
+which carries only derived counters and selected labels (model, tool names, file
+basenames). Internal by default; --shared redacts through a leak guard.
 """
 import argparse
 import datetime
@@ -1380,7 +1382,13 @@ def render(target, m, runs, findings, recs, pricing, shared=False,
                     if age is not None and age > stale_days else "")
     n = m["n_runs"]
     sig = "@" if is_agent else "/"
+    # Self-contained report: no scripts, no external fetches. A restrictive CSP enforces that
+    # as defense in depth even if the file is opened from an untrusted location. Inline <style>
+    # and inline style attributes need 'unsafe-inline'; inline SVG is DOM, not a fetch.
     doc_open = (f"<!doctype html><meta charset='utf-8'>"
+                f"<meta http-equiv='Content-Security-Policy' "
+                f"content=\"default-src 'none'; style-src 'unsafe-inline'; img-src data:; "
+                f"base-uri 'none'; form-action 'none'\">"
                 f"<meta name='viewport' content='width=device-width, initial-scale=1'>"
                 f"<title>GAUNTLET · {sig}{esc(target)}</title><style>{CSS}</style>")
     if n == 0:
@@ -1512,26 +1520,34 @@ def render(target, m, runs, findings, recs, pricing, shared=False,
         recs_html = ["<p class='section-sub'>No efficiency flag fired. This skill is already lean.</p>"]
     rec_total = ""
     if combined > 0.01:
-        rec_total = (f"<div class='rec-total'>Combined recovery: "
+        rec_total = (f"<div class='rec-total'>Combined modeled opportunity: "
                      f"<b>~{fmt_usd(combined)} across the {n} runs observed</b> · roughly "
-                     f"<b>{pct:.0%}</b> of median run cost, quality held constant.</div>")
+                     f"<b>{pct:.0%}</b> of median run cost, as a modeled upper bound. "
+                     f"Validate after changing the workflow.</div>")
 
-    privacy = ("<b>Shared report.</b> Project and file names are aliased. This variant passed "
-               "the leak guard before it was written."
+    privacy = ("<b>Shared report.</b> Project names, file basenames, and custom tool names are "
+               "aliased, and this variant passed the leak guard before it was written. It is "
+               "redacted, not anonymous: the skill or agent name, dates, models, run counts, and "
+               "token and cost figures remain. Review it before publishing."
                if shared else
-               "<b>Internal report.</b> Tool names and file names are shown in full because this "
-               "audit is for your eyes only. It never leaves this machine unless you explicitly "
-               "share it with --shared, which redacts it.")
+               "<b>Internal report.</b> Tool names and file basenames are shown in full because "
+               "this audit is for your eyes only. GAUNTLET reads and parses your transcripts "
+               "locally; it does not send them anywhere and writes only derived metrics and labels "
+               "here, never prompt, response, or tool-result content. To share, use --shared, then "
+               "review before publishing.")
 
     if is_agent:
         method_note = (f"A run is one spawn of the {esc(target)} agent, traced from the "
                        f"agent's own transcript file, so its internal steps are fully counted.")
     else:
-        method_note = (f"A run is one invocation of /{esc(target)}, anchored at the first "
-                       f"genuine invocation in a session and spanning to the next different "
-                       f"skill or end of session. Subagent-internal turns are not in the "
-                       f"parent transcript, so a spawned agent shows as its spawn plus the "
-                       f"digest it returned, not its internal token cost.")
+        method_note = (f"A run is one attributed session run of /{esc(target)}, anchored at the "
+                       f"first genuine invocation in a session and spanning to the next different "
+                       f"skill or end of session. At most one run per session, so a second "
+                       f"invocation of the same skill in that session folds into this run, and "
+                       f"work done after the skill finished but before another skill starts is "
+                       f"attributed to it. Subagent-internal turns are not in the parent "
+                       f"transcript, so a spawned agent shows as its spawn plus the digest it "
+                       f"returned, not its internal token cost.")
     notes = []
     if m.get("fallback_calls"):
         notes.append(f"{m['fallback_calls']} call(s) had an unrecognized model id and were "
@@ -1564,7 +1580,7 @@ def render(target, m, runs, findings, recs, pricing, shared=False,
       <div class="grade"><span class="glabel">Efficiency<br>Grade<span class="gnote">heuristic{' · &lt;3 runs' if not m['enough_for_average'] else ''}</span></span>
         <span class="gval">{esc(grade[0])}<small>{esc(grade[1:])}</small></span></div>
       <div style="font-size:11.5px;color:var(--text-mute);text-align:right;max-width:230px">
-        {('The fixes below recover an estimated <span style="color:var(--ember-hot)">' + f'{pct:.0%}</span> of median run cost.') if combined > 0.01 else (f'{fired_n} flag(s) fired; the ranked fixes below carry token, not dollar, estimates.' if fired_n else 'No material waste found; the workflow runs lean.')}
+        {('The opportunities below model up to <span style="color:var(--ember-hot)">' + f'{pct:.0%}</span> of median run cost.') if combined > 0.01 else (f'{fired_n} flag(s) fired; the ranked opportunities below carry token, not dollar, estimates.' if fired_n else 'No material waste found; the workflow runs lean.')}
         <span class="gradekey">Grade: 100 base, &minus;8 per fired flag, penalized for cache &lt;90% and output &gt;6%, floored at 40. A relative signal, not a benchmark.</span></div>
     </div>
   </div>
@@ -1576,8 +1592,8 @@ def render(target, m, runs, findings, recs, pricing, shared=False,
   <section id="economics">
     <div class="eyebrow">01 · Ledger</div>
     <h2 class="section-title">Run Economics</h2>
-    <p class="section-sub">Every historical <span class="mono" style="color:var(--gold-soft)">{sig}{esc(target)}</span>
-      run reconstructed from its transcript. Cost is billed tokens at posted rates; cache reads are discounted.</p>
+    <p class="section-sub">Every attributed session run of <span class="mono" style="color:var(--gold-soft)">{sig}{esc(target)}</span>,
+      reconstructed from its transcript. Cost is billed tokens at posted rates; cache reads are discounted.</p>
     {econ}
   </section>
   <section id="trace">
@@ -1607,10 +1623,12 @@ def render(target, m, runs, findings, recs, pricing, shared=False,
     <div class="flag-grid" style="margin-top:22px">{''.join(flags)}</div>
   </section>
   <section id="recs">
-    <div class="eyebrow">05 · The Fixes</div>
-    <h2 class="section-title">Recommendations</h2>
-    <p class="section-sub">Ranked by recovered cost. Recommendations only; none change the
-      skill's logic. GAUNTLET proposes, it does not rewrite.</p>
+    <div class="eyebrow">05 · Opportunities</div>
+    <h2 class="section-title">Opportunities to Investigate</h2>
+    <p class="section-sub">Ranked by modeled lever, biggest first. These are heuristics to
+      investigate, not proven wins: a short turn is not proof it was mechanical, and some chains
+      cannot be batched. Validate after you change the workflow. GAUNTLET proposes, it does not
+      rewrite.</p>
     <div class="rec-list" style="margin-top:22px">{''.join(recs_html)}</div>
     {rec_total}
   </section>
@@ -1694,8 +1712,25 @@ def _write_text(path, text):
     parent = os.path.dirname(os.path.abspath(path))
     if parent:
         os.makedirs(parent, exist_ok=True)   # ~/Downloads is not a given on every OS
-    with open(path, "w", encoding="utf-8") as fh:
-        fh.write(text)
+    # Write to a temp file in the same directory, then atomically replace: a crash mid-write
+    # never leaves a half-written report, and a concurrent reader sees old-or-new, never partial.
+    # Restrict permissions where the OS honors them (POSIX): the report can carry file basenames,
+    # so it should not be world-readable. Windows ignores the mode; os.replace is atomic there too.
+    fd, tmp = tempfile.mkstemp(dir=parent or ".", prefix=".gauntlet-", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(text)
+        try:
+            os.chmod(tmp, 0o600)
+        except OSError:
+            pass  # best-effort; restricted or non-POSIX filesystem
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
 
 
 # ------------------------------------------------------------------ RUN FILTER

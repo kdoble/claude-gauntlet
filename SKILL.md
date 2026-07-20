@@ -3,10 +3,10 @@ name: gauntlet
 description: >
   Audit ONE specific Claude Code skill or agent for token efficiency. Point it at a
   skill name (e.g. /my-skill) or an agent name (e.g. web-researcher) and it
-  reconstructs how that workflow actually ran across its historical runs on disk,
-  diagrams it step by step, measures token/cache/cost efficiency, runs a waste
-  checklist, and produces one self-contained HTML report with ranked recommendations
-  to make it cheaper. Use when the user says "gauntlet", "/gauntlet", "run X through the
+  reconstructs how that workflow actually ran across its attributed session runs on
+  disk, diagrams it step by step, measures token/cache/cost efficiency, runs a waste
+  checklist, and produces one self-contained HTML report with ranked opportunities
+  to investigate. Use when the user says "gauntlet", "/gauntlet", "run X through the
   gauntlet", "audit the /<skill> skill", "how token-efficient is <skill>", "how many
   calls does <skill> make", "where is <skill> wasting tokens", or "make <skill> more
   efficient". This is per-skill and workflow-level, reading local Claude Code
@@ -20,8 +20,9 @@ Takes one skill or agent and answers: what does its workflow actually do, step b
 how many calls per run; how the cache behaves; where it wastes tokens; and how to make it
 cheaper. Output is one self-contained dark HTML report.
 
-It reads local Claude Code transcripts (counters and labels only, never transcript
-content), so it costs nothing to run and needs no live re-execution.
+It reads and parses local Claude Code transcripts but never writes prompt, response, or
+tool-result content into the report (only derived counters and labels), so it costs nothing
+to run and needs no live re-execution.
 
 ## How to run it
 ```
@@ -64,8 +65,8 @@ It resolves its own paths, so it runs from any working directory. The report lan
 4. Efficiency flags: named waste checks (re-reads, cache breakage, heavy recon in main
    context, model over-provisioning, chatty chains, standing overhead, verbosity,
    workflow-shape). Each fires with evidence and savings, or reports clean.
-5. Ranked recommendations, biggest lever first. Recommendations only; it never rewrites
-   the skill.
+5. Ranked opportunities to investigate, biggest lever first. Heuristics, not proven wins;
+   validate after changing the workflow. It never rewrites the skill.
 
 ## Honesty rules built in
 - A skill run is anchored at the first genuine human-typed invocation in a session.

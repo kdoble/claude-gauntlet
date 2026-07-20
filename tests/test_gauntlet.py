@@ -832,5 +832,69 @@ class PricingFreshness(unittest.TestCase):
         self.assertNotIn("days old", html)
 
 
+CHECKLIST = g.load_json(os.path.join(os.path.dirname(__file__), "..", "checklist.json")) or {}
+
+
+def _demo_report(shared=False):
+    """Render a report from the bundled demo transcripts (fires real flags)."""
+    with tempfile.TemporaryDirectory() as d:
+        g.write_demo_transcripts(d, sessions=4)
+        runs = g.find_runs("demo-skill", d)
+        m = g.measure(runs, PRICING)
+        findings = g.diagnose(runs, m, PRICING, CHECKLIST, shared=shared)
+        recs = g.recommendations(findings, m)
+        return g.render("demo-skill", m, runs, findings, recs, PRICING,
+                        shared=shared, checklist=CHECKLIST)
+
+
+class HardeningAndHonesty(unittest.TestCase):
+    def test_report_carries_restrictive_csp(self):
+        html = _demo_report()
+        self.assertIn("Content-Security-Policy", html)
+        self.assertIn("default-src 'none'", html)
+        # no scripts are emitted, so script-src stays absent and default-src 'none' blocks them
+        self.assertNotIn("<script", html.lower())
+
+    def test_write_text_is_atomic_and_leaves_no_temp(self):
+        with tempfile.TemporaryDirectory() as d:
+            out = os.path.join(d, "sub", "r.html")   # parent does not exist yet
+            g._write_text(out, "<html>ok</html>")
+            self.assertEqual(_slurp(out), "<html>ok</html>")
+            # the atomic temp file must not survive next to the target
+            leftovers = [n for n in os.listdir(os.path.dirname(out)) if n.endswith(".tmp")]
+            self.assertEqual(leftovers, [])
+
+    @unittest.skipUnless(os.name == "posix", "POSIX file modes only")
+    def test_write_text_private_perms_on_posix(self):
+        with tempfile.TemporaryDirectory() as d:
+            out = os.path.join(d, "r.html")
+            g._write_text(out, "x")
+            self.assertEqual(os.stat(out).st_mode & 0o777, 0o600)
+
+    def test_recommendations_are_hedged_not_asserted(self):
+        # The overclaim words must be gone; the hedged framing must be present.
+        html = _demo_report()
+        self.assertIn("Opportunities to Investigate", html)
+        self.assertNotIn("quality held constant", html)
+        self.assertNotIn("<h2 class=\"section-title\">Recommendations</h2>", html)
+
+    def test_shared_report_is_redacted_not_anonymous(self):
+        html = _demo_report(shared=True)
+        self.assertIn("redacted, not anonymous", html)
+        self.assertIn("Review it before publishing", html)
+
+    def test_privacy_language_is_accurate_not_never_reads(self):
+        # We must NOT claim we never read content; we DO parse it, we just never emit it.
+        html = _demo_report()
+        self.assertIn("reads and parses your transcripts", html)
+        self.assertNotIn("never leaves this machine", html)  # the old overclaim
+
+    def test_console_entrypoint_is_claude_gauntlet_with_alias(self):
+        # 3.9 has no tomllib; assert on the raw text of the packaging config.
+        txt = _slurp(os.path.join(os.path.dirname(__file__), "..", "pyproject.toml"))
+        self.assertIn('claude-gauntlet = "gauntlet:main"', txt)
+        self.assertIn('gauntlet = "gauntlet:main"', txt)  # compatibility alias retained
+
+
 if __name__ == "__main__":
     unittest.main()

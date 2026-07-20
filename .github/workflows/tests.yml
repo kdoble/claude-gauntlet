@@ -1,5 +1,10 @@
 name: tests
 on: [push, pull_request]
+
+# Least privilege: this workflow only reads the repo and runs tests.
+permissions:
+  contents: read
+
 jobs:
   test:
     strategy:
@@ -8,9 +13,32 @@ jobs:
         python: ["3.9", "3.13"]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      # Actions are pinned to a commit SHA (not a mutable tag) so a compromised or retagged
+      # release cannot silently change what runs. Comment records the human-readable version.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ matrix.python }}
       - run: python -m unittest discover tests -v
-      - run: python examples/make_sample.py
+
+  package:
+    # Single OS: prove the wheel builds, installs, exposes the console command, and that the
+    # committed sample regenerates byte-identical (determinism guard). Run on Linux to avoid
+    # CRLF noise in the git diff.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Sample regenerates byte-identical
+        run: |
+          python examples/make_sample.py
+          git diff --exit-code -- docs/sample_report.html
+      - name: Wheel builds, installs, and the console command runs
+        run: |
+          python -m pip install --upgrade build
+          python -m build --wheel
+          python -m pip install dist/*.whl
+          claude-gauntlet --version
+          claude-gauntlet --demo --out /tmp/gauntlet_ci.html
