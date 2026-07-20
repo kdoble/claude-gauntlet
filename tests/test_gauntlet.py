@@ -741,7 +741,7 @@ class FleetAndBaseline(unittest.TestCase):
              "cost": {"median": 1.0}, "cache_hit": {"median": 0.9}}
         poison = {"schema_version": 1, "medians": {"tokens": 900_000},
                   "findings": [{"key": "POISON_KEY_ClientAcme", "fired": True}],
-                  "window": [None, "POISON_WINDOW_HarborDeal"]}
+                  "window": [None, "POISON_WINDOW_ClientDeal"]}
         cur = [{"key": "re_read", "fired": False}, {"key": "shape", "fired": False}]
         d = g.compare_baseline(poison, m, cur)
         self.assertEqual(d["cleared"], [])            # unknown key dropped, not surfaced
@@ -749,7 +749,7 @@ class FleetAndBaseline(unittest.TestCase):
         self.assertEqual(d["prior_window"], [None, None])   # non-date window value dropped
         strip = g._baseline_html(d)
         self.assertNotIn("POISON_KEY_ClientAcme", strip)
-        self.assertNotIn("POISON_WINDOW_HarborDeal", strip)
+        self.assertNotIn("POISON_WINDOW_ClientDeal", strip)
 
     def test_baseline_shape_excluded_from_cleared(self):
         # Regression (review MED): shape is a classifier, not a flag, on BOTH sides.
