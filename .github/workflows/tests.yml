@@ -1,5 +1,8 @@
 name: tests
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
 
 # Least privilege: this workflow only reads the repo and runs tests.
 permissions:
