@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+*.swp
+.idea/
+.vscode/
+
+# Local report output (never commit a real audit; it contains real basenames/tool names)
+gauntlet_report.html
+gauntlet_report.json
+*_shared.html

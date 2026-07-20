@@ -1,0 +1,272 @@
+<!doctype html><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><title>GAUNTLET · /demo-skill</title><style>
+:root {
+  --navy: #122a46; --navy-deep: #1b3a5c; --gold: #c9a227; --gold-soft: #d8b855;
+  --ink: #070d16; --ink-2: #0b1524; --ink-3: #0f1c30; --ink-4: #13263e;
+  --hairline: #21344c; --hairline-2: #2c435f;
+  --ember: #e08c3a; --ember-hot: #f0a94f; --ember-deep: #b5652233;
+  --fired: #e0623a; --fired-glow: #e0623a26; --clean: #5fa88a; --clean-glow: #5fa88a1f;
+  --text: #eaf0f7; --text-dim: #a9bad0; --text-mute: #6d829c; --text-faint: #47597219;
+  --serif: Georgia, 'Times New Roman', 'Iowan Old Style', 'Palatino Linotype', Palatino, serif;
+  --sans: ui-sans-serif, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --mono: ui-monospace, 'SF Mono', 'Cascadia Mono', 'Segoe UI Mono', Consolas, 'Liberation Mono', monospace;
+  --maxw: 1180px; --radius: 3px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background:
+    radial-gradient(1200px 620px at 78% -8%, #14304e2e, transparent 60%),
+    radial-gradient(900px 500px at 8% 4%, #1b3a5c1f, transparent 55%), var(--ink);
+  color: var(--text); font-family: var(--sans); font-size: 15px; line-height: 1.55;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+.wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 28px; }
+h1, h2, h3 { font-family: var(--serif); font-weight: 600; letter-spacing: 0.2px; margin: 0; }
+a { color: var(--gold-soft); text-decoration: none; }
+.num { font-family: var(--sans); font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+.mono { font-family: var(--mono); }
+section { padding: 46px 0; border-top: 1px solid var(--hairline); }
+section:first-of-type { border-top: none; }
+.eyebrow { font-family: var(--sans); font-size: 11px; font-weight: 700; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--gold); display: inline-flex; align-items: center; gap: 10px; }
+.eyebrow::before { content: ""; width: 22px; height: 1px; background: var(--gold); opacity: .8; }
+.section-title { font-size: 25px; color: var(--text); margin: 14px 0 4px; }
+.section-sub { color: var(--text-mute); font-size: 13.5px; max-width: 640px; }
+.masthead { position: relative; padding: 40px 0 40px; border-bottom: 1px solid var(--hairline); overflow: hidden; }
+.masthead::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold) 22%, var(--gold) 78%, transparent); opacity: .55; }
+.brandbar { display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  flex-wrap: wrap; padding-top: 26px; margin-bottom: 30px; }
+.brandmark { display: flex; align-items: center; gap: 14px; }
+.brandmark .seal { width: 40px; height: 40px; flex: 0 0 40px; }
+.brandmark .wordmark { font-family: var(--serif); font-size: 20px; letter-spacing: 5px; color: var(--text); font-weight: 600; }
+.brandmark .wordmark b { color: var(--gold); font-weight: 600; }
+.brand-tag { font-size: 10.5px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--text-mute);
+  border-left: 1px solid var(--hairline); padding-left: 14px; }
+.masthead-meta { text-align: right; font-size: 11.5px; color: var(--text-mute); letter-spacing: .5px; }
+.masthead-meta .num { color: var(--text-dim); }
+.hero-grid { display: grid; grid-template-columns: 1.35fr 1fr; gap: 40px; align-items: end; }
+.skill-line { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.skill-name { font-family: var(--mono); font-size: 46px; font-weight: 500; letter-spacing: -1px; color: var(--text); line-height: 1; }
+.skill-name .slash { color: var(--gold); }
+.skill-kind { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-mute);
+  border: 1px solid var(--hairline-2); border-radius: 100px; padding: 4px 12px; }
+.verdict { font-family: var(--serif); font-size: 21px; line-height: 1.42; color: var(--text-dim); margin-top: 20px; max-width: 560px; }
+.verdict b { color: var(--gold-soft); font-weight: 600; }
+.verdict .flagcount { color: var(--ember-hot); font-weight: 600; }
+.hero-right { display: flex; flex-direction: column; gap: 12px; align-items: flex-end; }
+.grade { display: inline-flex; align-items: center; gap: 14px; border: 1px solid var(--hairline-2);
+  border-radius: var(--radius); padding: 12px 18px; background: linear-gradient(180deg, #10203608, #0000); }
+.grade .glabel { font-size: 10.5px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-mute); }
+.grade .glabel .gnote { display: block; font-size: 8.5px; letter-spacing: 1px; color: var(--text-mute); margin-top: 3px; }
+.grade .gval { font-family: var(--serif); font-size: 34px; color: var(--gold); line-height: 1; }
+.grade .gval small { font-size: 15px; color: var(--text-mute); }
+.gradekey { display: block; font-size: 10px; color: var(--text-mute); margin-top: 8px; line-height: 1.4; opacity: .85; }
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; margin-top: 34px;
+  background: var(--hairline); border: 1px solid var(--hairline); border-radius: var(--radius); overflow: hidden; }
+.stat { background: linear-gradient(180deg, var(--ink-3), var(--ink-2)); padding: 20px 20px 18px; position: relative; }
+.stat::before { content: ""; position: absolute; top: 0; left: 0; width: 26px; height: 2px; background: var(--gold); opacity: .8; }
+.stat .k { font-size: 10.5px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--text-mute); }
+.stat .v { font-size: 34px; font-weight: 600; letter-spacing: -.5px; color: var(--text); margin-top: 10px; line-height: 1; }
+.stat .v .u { font-size: 15px; color: var(--text-mute); font-weight: 500; margin-left: 2px; }
+.stat .sub { font-size: 11.5px; color: var(--text-mute); margin-top: 7px; }
+.stat.accent .v { color: var(--ember-hot); }
+.stat.good .v { color: var(--clean); }
+.table-shell { border: 1px solid var(--hairline); border-radius: var(--radius); overflow: hidden; background: var(--ink-2); }
+.mini { border-collapse: collapse; font-size: 13px; }
+.mini td { padding: 6px 18px 6px 0; color: var(--text-dim); border-bottom: 1px solid #182a40; }
+.mini td:first-child { color: var(--text-mute); text-transform: uppercase; font-size: 10.5px; letter-spacing: 1.2px; }
+.mini td.num { font-variant-numeric: tabular-nums; color: var(--text); }
+.econ { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.econ thead th { font-family: var(--sans); font-size: 10.5px; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--text-mute); font-weight: 700; text-align: right; padding: 14px 18px; background: var(--ink-3); border-bottom: 1px solid var(--hairline); }
+.econ thead th:first-child, .econ tbody td:first-child { text-align: left; }
+.econ tbody td { padding: 12px 18px; text-align: right; border-bottom: 1px solid #182a40; color: var(--text-dim); }
+.econ tbody tr:hover td { background: var(--ink-4); }
+.econ .runid { color: var(--text); font-family: var(--mono); font-size: 12.5px; letter-spacing: .5px; }
+.econ .runid .dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--gold); margin-right:9px; vertical-align: middle; opacity:.7; }
+.econ td.tok { color: var(--text); font-variant-numeric: tabular-nums; }
+.econ td.cost { color: var(--ember); font-variant-numeric: tabular-nums; }
+.cachecell { display: inline-flex; align-items: center; gap: 10px; justify-content: flex-end; }
+.cachebar { width: 68px; height: 5px; border-radius: 3px; background: #1a2c43; overflow: hidden; }
+.cachebar > i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold-soft)); }
+.cacheval { color: var(--gold-soft); font-variant-numeric: tabular-nums; width: 42px; text-align: right; }
+.econ tfoot td { padding: 15px 18px; text-align: right; border-top: 2px solid var(--hairline-2);
+  background: var(--ink-3); color: var(--text); font-weight: 600; }
+.econ tfoot td:first-child { text-align: left; font-family: var(--serif); font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: var(--gold); }
+.econ tfoot .rng { color: var(--text-mute); font-weight: 400; font-size: 11.5px; display: block; margin-top: 2px; }
+.trace-legend { display: flex; gap: 22px; flex-wrap: wrap; margin: 18px 0 8px; font-size: 11.5px; color: var(--text-mute); }
+.trace-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.lg-swatch { width: 13px; height: 13px; border-radius: 2px; display: inline-block; }
+.lg-line { width: 20px; height: 0; border-top: 2px solid var(--gold); display: inline-block; }
+.lg-line.branch { border-top: 2px dashed var(--ember); }
+.trace-scroll { overflow-x: auto; overflow-y: hidden; border: 1px solid var(--hairline); border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--ink-2), var(--ink)); padding: 6px; -webkit-overflow-scrolling: touch; }
+.trace-scroll::-webkit-scrollbar { height: 10px; }
+.trace-scroll::-webkit-scrollbar-track { background: #0a1320; }
+.trace-scroll::-webkit-scrollbar-thumb { background: #26405e; border-radius: 6px; }
+.trace-scroll svg { display: block; }
+.scroll-hint { font-size: 11px; color: var(--text-mute); margin-top: 8px; letter-spacing: .5px; }
+.curve-card { border: 1px solid var(--hairline); border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--ink-2), var(--ink)); padding: 8px 8px 4px; }
+.curve-card svg { display: block; width: 100%; height: auto; }
+.curve-notes { display: flex; gap: 26px; flex-wrap: wrap; margin-top: 14px; }
+.curve-note { font-size: 12px; color: var(--text-mute); max-width: 320px; }
+.curve-note b { color: var(--text-dim); font-weight: 600; }
+.flag-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.flag { border: 1px solid var(--hairline); border-radius: var(--radius); background: var(--ink-3);
+  padding: 20px 22px; position: relative; overflow: hidden; }
+.flag::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+.flag.fired::before { background: var(--fired); }
+.flag.clean::before { background: var(--clean); }
+.flag.fired { background: linear-gradient(180deg, var(--fired-glow), transparent 60%), var(--ink-3); }
+.flag-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.flag-name { font-family: var(--serif); font-size: 16.5px; color: var(--text); }
+.flag-badge { font-size: 10px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase;
+  padding: 4px 10px; border-radius: 100px; white-space: nowrap; }
+.flag.fired .flag-badge { color: var(--fired); border: 1px solid var(--fired); background: #e0623a12; }
+.flag.clean .flag-badge { color: var(--clean); border: 1px solid var(--clean); background: var(--clean-glow); }
+.flag-body { font-size: 13px; color: var(--text-dim); line-height: 1.5; }
+.flag-body .mono { color: var(--gold-soft); font-size: 12px; }
+.flag-save { margin-top: 14px; padding-top: 13px; border-top: 1px solid var(--hairline);
+  display: flex; align-items: baseline; gap: 8px; font-size: 12px; color: var(--text-mute); }
+.flag-save .amt { font-size: 15px; color: var(--ember-hot); font-weight: 600; font-variant-numeric: tabular-nums; }
+.flag.clean .flag-save .amt { color: var(--clean); }
+.flag.span2 { grid-column: 1 / -1; }
+.rec-list { display: flex; flex-direction: column; gap: 14px; }
+.rec { display: grid; grid-template-columns: 58px 1fr auto; gap: 22px; align-items: center;
+  border: 1px solid var(--hairline); border-radius: var(--radius);
+  background: linear-gradient(90deg, var(--ink-3), var(--ink-2)); padding: 18px 22px; position: relative; }
+.rec:hover { border-color: var(--hairline-2); }
+.rec-rank { font-family: var(--serif); font-size: 40px; color: var(--gold); line-height: 1; text-align: center; opacity: .9; }
+.rec-rank small { display: block; font-family: var(--sans); font-size: 9px; letter-spacing: 2px; color: var(--text-mute); text-transform: uppercase; margin-top: 4px; }
+.rec-main .rt { font-family: var(--serif); font-size: 17px; color: var(--text); margin-bottom: 5px; }
+.rec-main .rr { font-size: 13px; color: var(--text-dim); }
+.rec-main .rr .mono { color: var(--gold-soft); font-size: 12px; }
+.rec-save { text-align: right; border-left: 1px solid var(--hairline); padding-left: 22px; min-width: 150px; }
+.rec-save .amt { font-size: 20px; font-weight: 600; color: var(--ember-hot); font-variant-numeric: tabular-nums; line-height: 1.1; }
+.rec-save .lbl { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-mute); margin-top: 4px; }
+.rec-total { text-align: right; margin-top: 16px; font-size: 13px; color: var(--text-mute); }
+.rec-total b { color: var(--ember-hot); font-weight: 600; font-size: 15px; }
+.foot { border-top: 1px solid var(--hairline); margin-top: 12px; padding: 34px 0 60px; }
+.foot-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 40px; }
+.foot h4 { font-family: var(--serif); font-size: 12.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--gold); margin-bottom: 10px; }
+.foot p { font-size: 11.5px; color: var(--text-mute); line-height: 1.6; margin: 0 0 10px; }
+.foot .owner { font-family: var(--serif); font-size: 15px; color: var(--text-dim); }
+.foot .owner b { color: var(--gold-soft); font-weight: 600; }
+.privacy { border: 1px solid var(--hairline); border-left: 3px solid var(--gold); border-radius: var(--radius);
+  padding: 14px 16px; background: #0d1b2c; font-size: 11.5px; color: var(--text-dim); line-height: 1.55; }
+.privacy b { color: var(--text); }
+@media (max-width: 900px) {
+  .hero-grid { grid-template-columns: 1fr; gap: 24px; }
+  .hero-right { align-items: flex-start; }
+  .stat-row { grid-template-columns: repeat(2, 1fr); }
+  .flag-grid { grid-template-columns: 1fr; }
+  .foot-grid { grid-template-columns: 1fr; }
+  .rec { grid-template-columns: 44px 1fr; }
+  .rec-save { grid-column: 1 / -1; text-align: left; border-left: none; border-top: 1px solid var(--hairline); padding: 12px 0 0; }
+  .skill-name { font-size: 36px; }
+}
+@media (max-width: 540px) {
+  .stat-row { grid-template-columns: 1fr; }
+  .wrap { padding: 0 18px; }
+  .econ thead { display: none; }
+}
+.flag.span2 { grid-column: 1 / -1; }
+</style>
+<header class="masthead"><div class="wrap">
+  <div class="brandbar">
+    <div class="brandmark"><svg class='seal' viewBox='0 0 40 40' fill='none' aria-hidden='true'><circle cx='20' cy='20' r='18.5' stroke='#c9a227' stroke-width='1'/><circle cx='20' cy='20' r='14' stroke='#c9a227' stroke-width='0.6' opacity='0.5'/><path d='M20 7 L31 26 H9 Z' stroke='#c9a227' stroke-width='1.1' fill='#c9a22712'/><path d='M20 15 L20 33 M13 33 L27 33' stroke='#c9a227' stroke-width='1.1'/></svg><div class="wordmark">GAUNT<b>LET</b></div>
+      <span class="brand-tag">Token Efficiency Audit</span></div>
+    <div class="masthead-meta">Skill <span class="num">/demo-skill</span><br>
+      Generated <span class="num">2026-07-18</span></div>
+  </div>
+  <div class="hero-grid">
+    <div>
+      <div class="eyebrow">Skill Under Audit</div>
+      <div class="skill-line" style="margin-top:16px">
+        <span class="skill-name"><span class="slash">/</span>demo-skill</span>
+        <span class="skill-kind">Multi-stage workflow</span></div>
+      <p class="verdict">median 14 steps with 0 subagent spawn(s): genuinely multi-stage, so the workflow structure is justified.
+        <span class="flagcount">2 efficiency flags</span> found.</p>
+    </div>
+    <div class="hero-right">
+      <div class="grade"><span class="glabel">Efficiency<br>Grade<span class="gnote">heuristic</span></span>
+        <span class="gval">B<small></small></span></div>
+      <div style="font-size:11.5px;color:var(--text-mute);text-align:right;max-width:230px">
+        2 flag(s) fired; the ranked fixes below carry token, not dollar, estimates.
+        <span class="gradekey">Grade: 100 base, &minus;8 per fired flag, penalized for cache &lt;90% and output &gt;6%, floored at 40. A relative signal, not a benchmark.</span></div>
+    </div>
+  </div>
+  
+  <div class="stat-row">
+<div class="stat"><div class="k">Runs Analyzed</div><div class="v num">4</div>
+ <div class="sub">2026-07-01 &rarr; 2026-07-01</div></div>
+<div class="stat accent"><div class="k">Median Tokens / Run</div>
+ <div class="v num">692<span class='u'>k</span></div>
+ <div class="sub">range 448k &ndash; 962k</div></div>
+<div class="stat"><div class="k">Median Cost / Run</div>
+ <div class="v num">$0.43</div>
+ <div class="sub">counterfactual · $0.29 &ndash; $0.59</div></div>
+<div class="stat good"><div class="k">Cache Hit Rate</div>
+ <div class="v num">92<span class="u">%</span></div>
+ <div class="sub">of input tokens served from cache</div></div></div>
+</div></header>
+
+<main class="wrap">
+  <section id="economics">
+    <div class="eyebrow">01 · Ledger</div>
+    <h2 class="section-title">Run Economics</h2>
+    <p class="section-sub">Every historical <span class="mono" style="color:var(--gold-soft)">/demo-skill</span>
+      run reconstructed from its transcript. Cost is billed tokens at posted rates; cache reads are discounted.</p>
+    <div class='table-shell' style='margin-top:22px'><table class='econ'><thead><tr><th>Run</th><th>Date</th><th>Steps</th><th>Tokens</th><th>Cost</th><th>Cache Hit</th></tr></thead><tbody><tr><td class='runid'><span class='dot'></span>Run 01</td><td class='num'>2026-07-01</td><td class='num'>10</td><td class='tok num'>448k</td><td class='cost num'>$0.29</td><td><span class='cachecell'><span class='cachebar'><i style='width:89%'></i></span><span class='cacheval num'>89%</span></span></td></tr><tr><td class='runid'><span class='dot'></span>Run 02</td><td class='num'>2026-07-01</td><td class='num'>13</td><td class='tok num'>606k</td><td class='cost num'>$0.37</td><td><span class='cachecell'><span class='cachebar'><i style='width:91%'></i></span><span class='cacheval num'>91%</span></span></td></tr><tr><td class='runid'><span class='dot'></span>Run 03</td><td class='num'>2026-07-01</td><td class='num'>16</td><td class='tok num'>777k</td><td class='cost num'>$0.49</td><td><span class='cachecell'><span class='cachebar'><i style='width:92%'></i></span><span class='cacheval num'>92%</span></span></td></tr><tr><td class='runid'><span class='dot'></span>Run 04</td><td class='num'>2026-07-01</td><td class='num'>19</td><td class='tok num'>962k</td><td class='cost num'>$0.59</td><td><span class='cachecell'><span class='cachebar'><i style='width:93%'></i></span><span class='cacheval num'>93%</span></span></td></tr></tbody><tfoot><tr><td>Median <span class='rng'>across 4 runs</span></td><td class='num'>&mdash;</td><td class='num'>14<span class='rng'>10 &ndash; 19</span></td><td class='num'>692k<span class='rng'>448k &ndash; 962k</span></td><td class='num' style='color:var(--ember-hot)'>$0.43<span class='rng'>$0.29 &ndash; $0.59</span></td><td class='num' style='color:var(--gold-soft)'>92%<span class='rng'>89% &ndash; 93%</span></td></tr></tfoot></table></div>
+  </section>
+  <section id="trace">
+    <div class="eyebrow">02 · The Trace</div>
+    <h2 class="section-title">Execution Trace &mdash; Representative Run</h2>
+    <p class="section-sub">Run 02 (2026-07-01), reconstructed step by step. Node width carries cache-read weight; watch it grow as context accumulates.</p>
+    <div class="trace-legend">
+      <span><i class='lg-swatch' style='background:#5fa88a22;border:1px solid #5fa88a'></i> Haiku</span><span><i class='lg-swatch' style='background:#6d5cff22;border:1px solid #8878ff'></i> Opus</span>
+      <span><i class="lg-swatch" style="background:var(--ember-deep);border:1px solid var(--ember)"></i> cache read (bar width)</span>
+      <span><i class="lg-line branch"></i> subagent branch</span></div>
+    <div class="trace-scroll"><svg viewBox='0 0 2190 460' width='2190' height='460' xmlns='http://www.w3.org/2000/svg'><defs><linearGradient id='nodeGrad' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#12233a'/><stop offset='1' stop-color='#0c1a2c'/></linearGradient><linearGradient id='cacheFill' x1='0' y1='0' x2='1' y2='0'><stop offset='0' stop-color='#b56522'/><stop offset='1' stop-color='#e08c3a'/></linearGradient></defs><rect x='30' y='104' width='120' height='92' rx='4' fill='url(#nodeGrad)' stroke='#2c435f'/><rect x='30' y='104' width='120' height='3' fill='#5fa88a' opacity='0.85'/><text x='41' y='123' font-family='ui-monospace,monospace' font-size='11' fill='#6d829c'>00</text><text x='139' y='123' text-anchor='end' font-family='ui-monospace,monospace' font-size='8.5' fill='#6d829c'>Bash</text><text x='41' y='144' font-family='Georgia,serif' font-size='12' fill='#eaf0f7'>Bash</text><rect x='41' y='152' width='46' height='15' rx='7' fill='#5fa88a22' stroke='#5fa88a'/><text x='64' y='163' text-anchor='middle' font-family='ui-sans-serif' font-size='9' fill='#bfe3d4'>HAIKU</text><text x='41' y='182' font-family='ui-sans-serif' font-size='9.5' fill='#a9bad0'>in 40k · out 40</text><rect x='41' y='186' width='98' height='6' rx='3' fill='#12233a'/><rect x='41' y='186' width='2' height='6' rx='3' fill='url(#cacheFill)' stroke='#e08c3a' stroke-width='0.5'/><line x1='150' y1='150.0' x2='180' y2='150.0' stroke='#2c435f' stroke-width='1.4'/><rect x='180' y='104' width='120' height='92' rx='4' fill='url(#nodeGrad)' stroke='#2c435f'/><rect x='180' y='104' width='120' height='3' fill='#8878ff' opacity='0.85'/><text x='191' y='123' font-family='ui-monospace,monospace' font-size='11' fill='#6d829c'>01</text><text x='289' y='123' text-anchor='end' font-family='ui-monospace,monospace' font-size='8.5' fill='#6d829c'>Read</text><text x='191' y='144' font-family='Georgia,serif' font-size='12' fill='#eaf0f7'>notes.md</text><rect x='191' y='152' width='46' height='15' rx='7' fill='#6d5cff22' stroke='#8878ff'/><text x='214' y='163' text-anchor='middle' font-family='ui-sans-serif' font-size='9' fill='#b9b0ff'>OPUS</text><text x='191' y='182' font-family='ui-sans-serif' font-size='9.5' fill='#a9bad0'>in 41k · out 140</text><rect x='191' y='186' width='98' height='6' rx='3' fill='#12233a'/><rect x='191' y='186' width='74' height='6' rx='3' fill='url(#cacheFill)' stroke='#e08c3a' stroke-width='0.5'/><line x1='300' y1='150.0' x2='330' y2='150.0' stroke='#2c435f' stroke-width='1.4'/><rect x='330' y='104' width='120' height='92' rx='4' fill='url(#nodeGrad)' stroke='#2c435f'/><rect x='330' y='104' width='120' height='3' fill='#8878ff' opacity='0.85'/><text x='341' y='123' font-family='ui-monospace,monospace' font-size='11' fill='#6d829c'>02</text><text x='439' y='123' text-anchor='end' font-family='ui-monospace,monospace' font-size='8.5' fill='#6d829c'>Grep</text><text x='341' y='144' font-family='Georgia,serif' font-size='12' fill='#eaf0f7'>Grep</text><rect x='341' y='152' width='46' height='15' rx='7' fill='#6d5cff22' stroke='#8878ff'/><text x='364' y='163' text-anchor='middle' font-family='ui-sans-serif' font-size='9' fill='#b9b0ff'>OPUS</text><text x='341' y='182' font-family='ui-sans-serif' font-size='9.5' fill='#a9bad0'>in 42k · out 140</text><rect x='341' y='186' width='98' height='6' rx='3' fill='#12233a'/><rect x='341' y='186' width='76' height='6' rx='3' fill='url(#cacheFill)' stroke='#e08c3a' stroke-width='0.5'/><line x1='450' y1='150.0' x2='480' y2='150.0' stroke='#2c435f' stroke-width='1.4'/><rect x='480' y='104' width='120' height='92' rx='4' fill='url(#nodeGrad)' stroke='#2c435f'/><rect x='480' y='104' width='120' height='3' fill='#8878ff' opacity='0.85'/><text x='491' y='123' font-family='ui-monospace,monospace' font-size='11' fill='#6d829c'>03</text><text x='589' y='123' text-anchor='end' font-family='ui-monospace,monospace' font-size='8.5' fill='#6d829c'>Read</text><text x='491' y='144' font-family='Georgia,serif' font-size='12' fill='#eaf0f7'>report_q3.xlsx</text><rect x='491' y='152' width='46' height='15' rx='7' fill='#6d5cff22' stroke='#8878ff'/><text x='514' y='163' text-anchor='middle' font-family='ui-sans-serif' font-size='9' fill='#b9b0ff'>OPUS</text><text x='491' y='182' font-family='ui-sans-serif' font-size='9.5' fill='#a9bad0'>in 43k · out 140</text><rect x='491' y='186' width='98' height='6' rx='3' fill='#12233a'/><rect x='491' y='186' width='78' height='6' rx='3' fill='url(#cacheFill)' stroke='#e08c3a' stroke-width='0.5'/><line x1='600' y1='150.0' x2='630' y2='150.0' stroke='#2c435f' stroke-width='1.4'/><rect x='630' y='104' width='120' height='92' rx='4' fill='url(#nodeGrad)' stroke='#2c435f'/><rect x='630' y='104' width='120' height='3' fill='#5fa88a' opacity='0.85'/><text x='641' y='123' font-family='ui-monospace,monospace' font-size='11' fill='#6d829c'>04</text><text x='739' y='123' text-anchor='end' font-family='ui-monospace,monospace' font-size='8.5' fill='#6d829c'>Bash</text><text x='641' y='144' font-family='Georgia,serif' font-size='12' fill='#eaf0f7'>Bash</text><rect x='641' y='152' width='46' height='15' rx='7' fill='#5fa88a22' stroke='#5fa88a'/><text x='664' y='163' text-anchor='middle' font-family='ui-sans-serif' font-size='9' fill='#bfe3d4'>HAIKU</text><text x='641' y='182' font-family='ui-sans-serif' font-size='9.5' fill='#a9bad0'>in 44k · out 40</text><rect x='641' y='186' width='98' height='6' rx='3' fill='#12233a'/><rect x='641' y='186' width='80' height='6' rx='3' fill='url(#cacheFill)' stroke='#e08c3a' stroke-width='0.5'/><line x1='750' y1='150.0' x2='780' y2='150.0' stroke='#2c435f' stroke-width='1.4'/><rect x='780' y='104' width='120' height='92' rx='4' fill='url(#nodeGrad)' stroke='#2c435f'/><rect x='780' y='104' width='120' height='3' fill='#8878ff' opacity='0.85'/><text x='791' y='123' font-family='ui-monospace,monospace' font-size='11' fill='#6d829c'>05</text><text x='889' y='123' text-anchor='end' font-family='ui-monospace,monospace' font-size='8.5' fill='#6d829c'>Read</text><text x='791' y='144' font-family='Georgia,serif' font-size='12' fill='#eaf0f7'>notes.md</text><rect x='791' y='152' width='46' height='15' rx='7' fill='#6d5cff22' stroke='#8878ff'/><text x='814' y='163' text-anchor='middle' font-family='ui-sans-serif' font-size='9' fill='#b9b0ff'>OPUS</text><text x='791' y='182' font-family='ui-sans-serif' font-size='9.5' fill='#a9bad0'>in 45k · out 140</text><rect x='791' y='186' width='98' height='6' rx='3' fill='#12233a'/><rect x='791' y='186' width='82' height='6' rx='3' fill='url(#cacheFill)' stroke='#e08c3a' stroke-width='0.5'/><line x1='900' y1='150.0' x2='930' y2='150.0' stroke='#2c435f' stroke-width='1.4'/><rect x='930' y='104' width='120' height='92' rx='4' fill='url(#nodeGrad)' stroke='#2c435f'/><rect x='930' y='104' width='120' height='3' fill='#8878ff' opacity='0.85'/><text x='941' y='123' font-family='ui-monospace,monospace' font-size='11' fill='#6d829c'>06</text><text x='1039' y='123' text-anchor='end' font-family='ui-monospace,monospace' font-size='8.5' fill='#6d829c'>Grep</text><text x='941' y='144' font-family='Georgia,serif' font-size='12' fill='#eaf0f7'>Grep</text><rect x='941' y='152' width='46' height='15' rx='7' fill='#6d5cff22' stroke='#8878ff'/><text x='964' y='163' text-anchor='middle' font-family='ui-sans-serif' font-size='9' fill='#b9b0ff'>OPUS</text><text x='941' y='182' font-family='ui-sans-serif' font-size='9.5' fill='#a9bad0'>in 46k · out 140</text><rect x='941' y='186' width='98' height='6' rx='3' fill='#12233a'/><rect x='941' y='186' width='84' height='6' rx='3' fill='url(#cacheFill)' stroke='#e08c3a' stroke-width='0.5'/><line x1='1050' y1='150.0' x2='1080' y2='150.0' stroke='#2c435f' stroke-width='1.4'/><rect x='1080' y='104' width='120' height='92' rx='4' fill='url(#nodeGrad)' stroke='#2c435f'/><rect x='1080' y='104' width='120' height='3' fill='#8878ff' opacity='0.85'/><text x='1091' y='123' font-family='ui-monospace,monospace' font-size='11' fill='#6d829c'>07</text><text x='1189' y='123' text-anchor='end' font-family='ui-monospace,monospace' font-size='8.5' fill='#6d829c'>Read</text><text x='1091' y='144' font-family='Georgia,serif' font-size='12' fill='#eaf0f7'>report_q3.xlsx</text><rect x='1091' y='152' width='46' height='15' rx='7' fill='#6d5cff22' stroke='#8878ff'/><text x='1114' y='163' text-anchor='middle' font-family='ui-sans-serif' font-size='9' fill='#b9b0ff'>OPUS</text><text x='1091' y='182' font-family='ui-sans-serif' font-size='9.5' fill='#a9bad0'>in 47k · out 140</text><rect x='1091' y='186' width='98' height='6' rx='3' fill='#12233a'/><rect x='1091' y='186' width='86' height='6' rx='3' fill='url(#cacheFill)' stroke='#e08c3a' stroke-width='0.5'/><line x1='1200' y1='150.0' x2='1230' y2='150.0' stroke='#2c435f' stroke-width='1.4'/><rect x='1230' y='104' width='120' height='92' rx='4' fill='url(#nodeGrad)' stroke='#2c435f'/><rect x='1230' y='104' width='120' height='3' fill='#5fa88a' opacity='0.85'/><text x='1241' y='123' font-family='ui-monospace,monospace' font-size='11' fill='#6d829c'>08</text><text x='1339' y='123' text-anchor='end' font-family='ui-monospace,monospace' font-size='8.5' fill='#6d829c'>Bash</text><text x='1241' y='144' font-family='Georgia,serif' font-size='12' fill='#eaf0f7'>Bash</text><rect x='1241' y='152' width='46' height='15' rx='7' fill='#5fa88a22' stroke='#5fa88a'/><text x='1264' y='163' text-anchor='middle' font-family='ui-sans-serif' font-size='9' fill='#bfe3d4'>HAIKU</text><text x='1241' y='182' font-family='ui-sans-serif' font-size='9.5' fill='#a9bad0'>in 49k · out 40</text><rect x='1241' y='186' width='98' height='6' rx='3' fill='#12233a'/><rect x='1241' y='186' width='88' height='6' rx='3' fill='url(#cacheFill)' stroke='#e08c3a' stroke-width='0.5'/><line x1='1350' y1='150.0' x2='1380' y2='150.0' stroke='#2c435f' stroke-width='1.4'/><rect x='1380' y='104' width='120' height='92' rx='4' fill='url(#nodeGrad)' stroke='#2c435f'/><rect x='1380' y='104' width='120' height='3' fill='#8878ff' opacity='0.85'/><text x='1391' y='123' font-family='ui-monospace,monospace' font-size='11' fill='#6d829c'>09</text><text x='1489' y='123' text-anchor='end' font-family='ui-monospace,monospace' font-size='8.5' fill='#6d829c'>Read</text><text x='1391' y='144' font-family='Georgia,serif' font-size='12' fill='#eaf0f7'>notes.md</text><rect x='1391' y='152' width='46' height='15' rx='7' fill='#6d5cff22' stroke='#8878ff'/><text x='1414' y='163' text-anchor='middle' font-family='ui-sans-serif' font-size='9' fill='#b9b0ff'>OPUS</text><text x='1391' y='182' font-family='ui-sans-serif' font-size='9.5' fill='#a9bad0'>in 50k · out 140</text><rect x='1391' y='186' width='98' height='6' rx='3' fill='#12233a'/><rect x='1391' y='186' width='90' height='6' rx='3' fill='url(#cacheFill)' stroke='#e08c3a' stroke-width='0.5'/><line x1='1500' y1='150.0' x2='1530' y2='150.0' stroke='#2c435f' stroke-width='1.4'/><rect x='1530' y='104' width='120' height='92' rx='4' fill='url(#nodeGrad)' stroke='#2c435f'/><rect x='1530' y='104' width='120' height='3' fill='#8878ff' opacity='0.85'/><text x='1541' y='123' font-family='ui-monospace,monospace' font-size='11' fill='#6d829c'>10</text><text x='1639' y='123' text-anchor='end' font-family='ui-monospace,monospace' font-size='8.5' fill='#6d829c'>Grep</text><text x='1541' y='144' font-family='Georgia,serif' font-size='12' fill='#eaf0f7'>Grep</text><rect x='1541' y='152' width='46' height='15' rx='7' fill='#6d5cff22' stroke='#8878ff'/><text x='1564' y='163' text-anchor='middle' font-family='ui-sans-serif' font-size='9' fill='#b9b0ff'>OPUS</text><text x='1541' y='182' font-family='ui-sans-serif' font-size='9.5' fill='#a9bad0'>in 51k · out 140</text><rect x='1541' y='186' width='98' height='6' rx='3' fill='#12233a'/><rect x='1541' y='186' width='93' height='6' rx='3' fill='url(#cacheFill)' stroke='#e08c3a' stroke-width='0.5'/><line x1='1650' y1='150.0' x2='1680' y2='150.0' stroke='#2c435f' stroke-width='1.4'/><rect x='1680' y='104' width='120' height='92' rx='4' fill='url(#nodeGrad)' stroke='#2c435f'/><rect x='1680' y='104' width='120' height='3' fill='#8878ff' opacity='0.85'/><text x='1691' y='123' font-family='ui-monospace,monospace' font-size='11' fill='#6d829c'>11</text><text x='1789' y='123' text-anchor='end' font-family='ui-monospace,monospace' font-size='8.5' fill='#6d829c'>Read</text><text x='1691' y='144' font-family='Georgia,serif' font-size='12' fill='#eaf0f7'>report_q3.xlsx</text><rect x='1691' y='152' width='46' height='15' rx='7' fill='#6d5cff22' stroke='#8878ff'/><text x='1714' y='163' text-anchor='middle' font-family='ui-sans-serif' font-size='9' fill='#b9b0ff'>OPUS</text><text x='1691' y='182' font-family='ui-sans-serif' font-size='9.5' fill='#a9bad0'>in 53k · out 140</text><rect x='1691' y='186' width='98' height='6' rx='3' fill='#12233a'/><rect x='1691' y='186' width='95' height='6' rx='3' fill='url(#cacheFill)' stroke='#e08c3a' stroke-width='0.5'/><line x1='1800' y1='150.0' x2='1830' y2='150.0' stroke='#2c435f' stroke-width='1.4'/><rect x='1830' y='104' width='120' height='92' rx='4' fill='url(#nodeGrad)' stroke='#2c435f'/><rect x='1830' y='104' width='120' height='3' fill='#5fa88a' opacity='0.85'/><text x='1841' y='123' font-family='ui-monospace,monospace' font-size='11' fill='#6d829c'>12</text><text x='1939' y='123' text-anchor='end' font-family='ui-monospace,monospace' font-size='8.5' fill='#6d829c'>Bash</text><text x='1841' y='144' font-family='Georgia,serif' font-size='12' fill='#eaf0f7'>Bash</text><rect x='1841' y='152' width='46' height='15' rx='7' fill='#5fa88a22' stroke='#5fa88a'/><text x='1864' y='163' text-anchor='middle' font-family='ui-sans-serif' font-size='9' fill='#bfe3d4'>HAIKU</text><text x='1841' y='182' font-family='ui-sans-serif' font-size='9.5' fill='#a9bad0'>in 54k · out 40</text><rect x='1841' y='186' width='98' height='6' rx='3' fill='#12233a'/><rect x='1841' y='186' width='98' height='6' rx='3' fill='url(#cacheFill)' stroke='#e08c3a' stroke-width='0.5'/><circle cx='2000' cy='150.0' r='10' fill='#0e1830' stroke='#c9a227' stroke-width='1.4'/><path d='M1995 150.0 l4 4 l7 -8' stroke='#c9a227' stroke-width='1.6' fill='none'/><text x='2000' y='182.0' text-anchor='middle' font-family='ui-sans-serif' font-size='9' fill='#6d829c'>done</text><text x='30' y='446' font-family='ui-sans-serif' font-size='10.5' fill='#6d829c' letter-spacing='1'>CACHE READ ACCUMULATION  →  0</text><text x='2170' y='446' text-anchor='end' font-family='ui-sans-serif' font-size='10.5' fill='#e08c3a' letter-spacing='1'>53k peak context</text></svg></div>
+    <div class="scroll-hint">Scroll horizontally to follow the full trace.</div>
+  </section>
+  <section id="growth">
+    <div class="eyebrow">03 · Accumulation</div>
+    <h2 class="section-title">Context Growth Curve</h2>
+    <p class="section-sub">Cache-read tokens per step across the representative run. The context
+      never shrinks: once loaded, the standing overhead is re-read on every step. That floor is
+      what the flags below attack.</p>
+    <div class="curve-card" style="margin-top:22px"><svg viewBox='0 0 1000 340' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Context growth curve' preserveAspectRatio='xMidYMid meet'><defs><linearGradient id='areaFill' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#e08c3a' stop-opacity='0.34'/><stop offset='1' stop-color='#e08c3a' stop-opacity='0.02'/></linearGradient><linearGradient id='floorFill' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#c9a227' stop-opacity='0.14'/><stop offset='1' stop-color='#c9a227' stop-opacity='0.02'/></linearGradient></defs><g stroke='#182a40' stroke-width='1'><line x1='70' y1='280.0' x2='960' y2='280.0'/><line x1='70' y1='220.0' x2='960' y2='220.0'/><line x1='70' y1='160.0' x2='960' y2='160.0'/><line x1='70' y1='100.0' x2='960' y2='100.0'/><line x1='70' y1='40.0' x2='960' y2='40.0'/></g><g font-family='ui-sans-serif' font-size='10' fill='#6d829c' text-anchor='end'><text x='60' y='284.0'>0</text><text x='60' y='224.0'>25k</text><text x='60' y='164.0'>50k</text><text x='60' y='104.0'>75k</text><text x='60' y='44.0'>100k</text></g><line x1='70' y1='280.0' x2='960' y2='280.0' stroke='#c9a227' stroke-width='1' stroke-dasharray='4 4' opacity='0.8'/><text x='76' y='274.0' font-family='ui-sans-serif' font-size='10' fill='#d8b855'>Standing-overhead floor · 0 (re-read every step)</text><path fill='url(#areaFill)' stroke='none' d='M70.0,280.0 L70.0,280.0 L144.2,184.0 L218.3,181.7 L292.5,179.4 L366.7,176.9 L440.8,174.4 L515.0,171.8 L589.2,169.0 L663.3,166.2 L737.5,163.3 L811.7,160.2 L885.8,157.1 L960.0,153.9 L960.0,280 L70.0,280 Z'/><path fill='none' stroke='#f0a94f' stroke-width='2.4' stroke-linejoin='round' stroke-linecap='round' d='M70.0,280.0 L144.2,184.0 L218.3,181.7 L292.5,179.4 L366.7,176.9 L440.8,174.4 L515.0,171.8 L589.2,169.0 L663.3,166.2 L737.5,163.3 L811.7,160.2 L885.8,157.1 L960.0,153.9'/><circle cx='70.0' cy='280.0' r='3' fill='#0b1524' stroke='#f0a94f' stroke-width='2'/><circle cx='144.2' cy='184.0' r='3' fill='#0b1524' stroke='#f0a94f' stroke-width='2'/><circle cx='218.3' cy='181.7' r='3' fill='#0b1524' stroke='#f0a94f' stroke-width='2'/><circle cx='292.5' cy='179.4' r='3' fill='#0b1524' stroke='#f0a94f' stroke-width='2'/><circle cx='366.7' cy='176.9' r='3' fill='#0b1524' stroke='#f0a94f' stroke-width='2'/><circle cx='440.8' cy='174.4' r='3' fill='#0b1524' stroke='#f0a94f' stroke-width='2'/><circle cx='515.0' cy='171.8' r='3' fill='#0b1524' stroke='#f0a94f' stroke-width='2'/><circle cx='589.2' cy='169.0' r='3' fill='#0b1524' stroke='#f0a94f' stroke-width='2'/><circle cx='663.3' cy='166.2' r='3' fill='#0b1524' stroke='#f0a94f' stroke-width='2'/><circle cx='737.5' cy='163.3' r='3' fill='#0b1524' stroke='#f0a94f' stroke-width='2'/><circle cx='811.7' cy='160.2' r='3' fill='#0b1524' stroke='#f0a94f' stroke-width='2'/><circle cx='885.8' cy='157.1' r='3' fill='#0b1524' stroke='#f0a94f' stroke-width='2'/><circle cx='960.0' cy='153.9' r='3' fill='#0b1524' stroke='#f0a94f' stroke-width='2'/></svg></div>
+  </section>
+  <section id="flags">
+    <div class="eyebrow">04 · Waste Checks</div>
+    <h2 class="section-title">Efficiency Flags</h2>
+    <p class="section-sub">Independent waste checks run against every step of every run. A flag
+      FIRES only when the pattern recurs with real savings.</p>
+    <div class="flag-grid" style="margin-top:22px"><div class='flag fired'><div class='flag-head'><div class='flag-name'>Repeated file reads</div><div class='flag-badge'>Fired</div></div><div class='flag-body'>20 redundant file read(s) across 4 runs; e.g. notes.md read 3x in one run</div><div class='flag-save'>Each avoided re-read saves the file&#x27;s tokens plus one extra billed turn.</div></div><div class='flag clean'><div class='flag-head'><div class='flag-name'>Cache invalidation mid-run</div><div class='flag-badge'>Clean</div></div><div class='flag-body'>The cache prefix held across each run; no mid-run re-warm detected.</div><div class='flag-save'><span class='amt'>Nominal</span> no action needed</div></div><div class='flag fired'><div class='flag-head'><div class='flag-name'>Heavy recon in main context</div><div class='flag-badge'>Fired</div></div><div class='flag-body'>4 tool result(s) over 20,000 tok landed in main context; largest ~30,000 tok at step 3 (Read)</div><div class='flag-save'><span class='amt'>~102,000 tokens</span> recoverable across runs by moving that recon to a subagent that returns a digest.</div></div><div class='flag clean'><div class='flag-head'><div class='flag-name'>Premium model on mechanical turns</div><div class='flag-badge'>Clean</div></div><div class='flag-body'>No expensive-tier call was doing trivial mechanical work.</div><div class='flag-save'><span class='amt'>Nominal</span> no action needed</div></div><div class='flag clean'><div class='flag-head'><div class='flag-name'>Chatty single-tool chains</div><div class='flag-badge'>Clean</div></div><div class='flag-body'>No long chain of tiny single-tool turns; tool calls were batched well.</div><div class='flag-save'><span class='amt'>Nominal</span> no action needed</div></div><div class='flag clean'><div class='flag-head'><div class='flag-name'>Standing overhead per invocation</div><div class='flag-badge'>Clean</div></div><div class='flag-body'>first-call context is modest (median 40,008 tok, from 4 fresh-session run(s)).</div><div class='flag-save'><span class='amt'>Nominal</span> no action needed</div></div><div class='flag clean'><div class='flag-head'><div class='flag-name'>Output verbosity</div><div class='flag-badge'>Clean</div></div><div class='flag-body'>output share is lean (median 0.2% of billed tokens).</div><div class='flag-save'><span class='amt'>Nominal</span> no action needed</div></div></div>
+  </section>
+  <section id="recs">
+    <div class="eyebrow">05 · The Fixes</div>
+    <h2 class="section-title">Recommendations</h2>
+    <p class="section-sub">Ranked by recovered cost. Recommendations only; none change the
+      skill's logic. GAUNTLET proposes, it does not rewrite.</p>
+    <div class="rec-list" style="margin-top:22px"><div class='rec'><div class='rec-rank'>1<small>Rank</small></div><div class='rec-main'><div class='rt'>Move heavy recon into a subagent that returns a digest</div><div class='rr'>4 tool result(s) over 20,000 tok landed in main context; largest ~30,000 tok at step 3 (Read)</div></div><div class='rec-save'><div class='amt'>&mdash;</div><div class='lbl'>see note</div></div></div><div class='rec'><div class='rec-rank'>2<small>Rank</small></div><div class='rec-main'><div class='rt'>Read each file once per run and reuse it</div><div class='rr'>20 redundant file read(s) across 4 runs; e.g. notes.md read 3x in one run</div></div><div class='rec-save'><div class='amt'>&mdash;</div><div class='lbl'>see note</div></div></div></div>
+    
+  </section>
+</main>
+<footer class="foot"><div class="wrap"><div class="foot-grid">
+  <div><h4>Method &amp; Attribution</h4>
+    <p>A run is one invocation of /demo-skill, anchored at the first genuine invocation in a session and spanning to the next different skill or end of session. Subagent-internal turns are not in the parent transcript, so a spawned agent shows as its spawn plus the digest it returned, not its internal token cost. Billed API calls are
+      deduped on message id. Costs are counterfactual metered pricing at the illustrative
+      rates in pricing.json (edit them; verify against the current provider rate card before
+      quoting a dollar figure), not your bill. Text tool-result sizes are estimated at ~4
+      bytes per token; image reads use pixel-based token math. Savings are modeled from
+      observed step sizes and are directional, not invoiced. Each median tile is a per-metric
+      median across runs, so different tiles can come from different runs; the representative
+      trace is the single run closest to the median step count.
+      4 run(s), 2026-07-01 through 2026-07-01.</p>
+    </div>
+  <div><h4>Privacy</h4><div class="privacy"><b>Internal report.</b> Tool names and file names are shown in full because this audit is for your eyes only. It never leaves this machine unless you explicitly share it with --shared, which redacts it.</div></div>
+</div></div></footer>

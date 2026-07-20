@@ -1,0 +1,19 @@
+{
+  "as_of": "2026-07-20",
+  "source": "https://platform.claude.com/docs/en/about-claude/pricing (Claude rates, verified 2026-07-20); https://openai.com/api/pricing (GPT-5/Codex)",
+  "note": "USD per 1M tokens. Estimates only: subscription users pay a flat plan, so dollars here are counterfactual metered cost, useful for COMPARING runs, not as a bill. Prices change; edit this file and update as_of. Claude rates below match the official rate card as of as_of. ORDER IS PRIORITY: the first entry whose 'match' is a substring of the model id wins, so keep the most specific pattern first (codex before gpt-5). File-level cache multipliers are Anthropic economics (reads 0.1x input; 5m write 1.25x, 1h write 2.0x input); a model entry may override them (OpenAI/Codex has no cache-write surcharge, so those set writes to 1.0x). Verify the OpenAI figures against the provider rate card before quoting Codex/GPT-5 dollars.",
+  "cache_read_multiplier": 0.1,
+  "cache_write_5m_multiplier": 1.25,
+  "cache_write_1h_multiplier": 2.0,
+  "models": [
+    { "match": "fable",  "label": "Claude Fable 5", "input": 10.0, "output": 50.0 },
+    { "match": "opus",   "label": "Claude Opus",    "input": 5.0,  "output": 25.0 },
+    { "match": "sonnet", "label": "Claude Sonnet",  "input": 3.0,  "output": 15.0 },
+    { "match": "haiku",  "label": "Claude Haiku",   "input": 1.0,  "output": 5.0 },
+    { "match": "codex",  "label": "Codex model",    "input": 1.25, "output": 10.0,
+      "cache_read_multiplier": 0.1, "cache_write_5m_multiplier": 1.0, "cache_write_1h_multiplier": 1.0 },
+    { "match": "gpt-5",  "label": "GPT-5 family",   "input": 1.25, "output": 10.0,
+      "cache_read_multiplier": 0.1, "cache_write_5m_multiplier": 1.0, "cache_write_1h_multiplier": 1.0 }
+  ],
+  "fallback": { "label": "Unknown model (fallback rate)", "input": 5.0, "output": 25.0 }
+}

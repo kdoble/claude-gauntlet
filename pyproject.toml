@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "claude-gauntlet"
+version = "0.1.0"
+description = "Audit Claude Code skills and agents for token efficiency from your local transcripts"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+keywords = ["claude-code", "claude", "anthropic", "llm-cost", "token-usage", "developer-tools"]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/kdoble/claude-gauntlet"
+Issues = "https://github.com/kdoble/claude-gauntlet/issues"
+
+[project.scripts]
+gauntlet = "gauntlet:main"
+
+# Single-file module. pricing.json / checklist.json are the editable source of truth; the
+# tool also carries embedded fallbacks (DEFAULT_PRICING + module constants) so the installed
+# entry point works even though a py-module install does not ship sibling data files.
+[tool.setuptools]
+py-modules = ["gauntlet"]

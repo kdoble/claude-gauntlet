@@ -1,0 +1,10 @@
+{
+  "_note": "Thresholds for the gauntlet waste checks and the averaging floor. Tuned against real multi-stage skill runs, 2026-07-18. Every key here is read by the code (a dead key is a bug); editing these changes what fires, so keep them defensible.",
+  "heavy_result_tokens": 20000,
+  "mechanical_out_tokens": 80,
+  "min_runs_for_average": 3,
+  "big_overhead_tokens": 60000,
+  "lean_output_share": 0.06,
+  "simple_workflow_max_steps": 6,
+  "pricing_stale_days": 90
+}
