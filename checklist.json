@@ -3,6 +3,8 @@
   "heavy_result_tokens": 20000,
   "mechanical_out_tokens": 80,
   "min_runs_for_average": 3,
+  "low_self_share": 0.5,
+  "tail_turns": 5,
   "big_overhead_tokens": 60000,
   "lean_output_share": 0.06,
   "simple_workflow_max_steps": 6,

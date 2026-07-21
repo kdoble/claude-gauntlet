@@ -25,6 +25,8 @@ if you consume this programmatically.
 | `medians.cache_hit` | number | Median share of input tokens served from cache, 0..1. |
 | `medians.overhead` | number | Median standing overhead (step-0 context) across fresh-session runs only. |
 | `medians.out_share` | number | Median output tokens as a share of total, 0..1. |
+| `medians.self_share` | number | Median share of a run's steps that ran before the next human-typed turn, 0..1. Added in 0.2.0. `1.0` means fully self-contained (always so for agents, which trace their own file). A low value means the attribution span is carrying the tail of a long session, so the other medians are an upper bound on this skill's own cost. |
+| `tail_runs` | int | Count of runs whose `self_share` fell below `low_self_share` (checklist.json, default 0.5). Added in 0.2.0. |
 | `findings[]` | array | One entry per waste check. |
 | `findings[].key` | string | Stable check id (e.g. `re_read`, `heavy_recon`, `overhead`, `shape`). |
 | `findings[].fired` | bool | Whether the check fired for this audit. |

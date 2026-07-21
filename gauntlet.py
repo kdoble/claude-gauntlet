@@ -23,7 +23,7 @@ import statistics
 import sys
 import tempfile
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 JSON_SCHEMA_VERSION = 1   # --json layout; bump on any breaking field change (docs/json_schema.md)
 
 # ------------------------------------------------------------------ constants
@@ -46,6 +46,18 @@ SYNTHETIC_MODELS = {"<synthetic>", "", "claude-unknown"}
 HEAVY_RESULT_TOKENS = 20_000     # a tool_result above this is "heavy recon"
 MECHANICAL_OUT_TOKENS = 80       # an assistant turn below this output is "mechanical"
 MIN_RUNS_FOR_AVERAGE = 3         # below this, print per-run numbers, never an average
+LOW_SELF_SHARE = 0.5             # below this, a run is mostly session tail, not the skill
+TAIL_TURNS = 5                   # human turns inside a span that make it a session, not a run
+# GAUNTLET's own shipped filenames. The report prints these in its methodology text
+# unconditionally, so if an audited skill happens to READ one of them, the basename lands in
+# the leak guard's forbidden list and the guard raises on the report's own boilerplate. That is
+# a guaranteed false positive (the string is in every report), and it hard-crashed --shared for
+# anyone auditing a skill that touches a same-named file. Same failure class the extension-less
+# word exclusion below already covers. Redaction still blanks every basename in finding text;
+# only the guard's assertion skips these.
+OWN_FILES = {"pricing.json", "checklist.json", "gauntlet.py", "sample_report.html",
+             "make_sample.py", "json_schema.md", "SKILL.md", "README.md", "CHANGELOG.md",
+             "pyproject.toml", "screenshot.png", "test_gauntlet.py", "tests.yml"}
 BYTES_PER_TOKEN = 4.0            # rough tokens estimate from a TEXT payload byte length
 
 # Image tool_results are NOT text: a rendered page tokenizes by its pixel dimensions,
@@ -173,7 +185,8 @@ class Step:
 class Run:
     """One historical invocation of the target skill, as a trace of Steps."""
     __slots__ = ("session", "project", "file", "start_ts", "steps",
-                 "synthetic_events", "mid_session", "parse_errors")
+                 "synthetic_events", "mid_session", "parse_errors", "self_steps",
+                 "human_turns")
 
     def __init__(self, session, project, file):
         self.session = session
@@ -187,10 +200,25 @@ class Run:
         # own load. The overhead check must not read such a run as the skill's floor.
         self.mid_session = False
         self.parse_errors = 0
+        # Steps that ran BEFORE the human typed again. The attribution rule spans to
+        # session end, so in a long session a skill invoked early absorbs the tail; a
+        # low self_steps/steps share is the signal that most of this run's tokens were
+        # not the skill's doing. Reported, never silently corrected. (Issue #1.)
+        self.self_steps = 0
+        # Human-typed turns inside the attributed span. Self-share alone cannot separate
+        # "a short interactive skill you answered once" from "a skill that swallowed a
+        # whole session": both read near 0%. The turn count is what distinguishes them.
+        self.human_turns = 0
 
     @property
     def day(self):
         return self.start_ts[:10] if self.start_ts and len(self.start_ts) >= 10 else None
+
+    @property
+    def self_share(self):
+        """Share of attributed steps that ran before the next human turn. 1.0 when the
+        human never spoke again, which is the structurally self-contained case."""
+        return (self.self_steps / len(self.steps)) if self.steps else 1.0
 
 
 # ------------------------------------------------------------------ FIND
@@ -220,6 +248,40 @@ def _user_text(o):
         return "\n".join(b.get("text", "") for b in content
                          if isinstance(b, dict) and b.get("type") == "text")
     return ""
+
+
+_HARNESS_BLOCK = re.compile(
+    r"<(system-reminder|local-command-stdout|local-command-caveat|command-name|"
+    r"command-message|command-args|command-contents)>.*?</\1>", re.S)
+
+
+def _human_says(o):
+    """The user's OWN typed words on this turn, harness-injected blocks removed.
+
+    Claude Code writes several things into the `user` role that no person typed: system
+    reminders, local-command stdout, and the expansion of a slash command. A run
+    boundary must key on a real human turn, so those are stripped first. Builds on
+    _user_text, so tool_result turns and JSON-bodied turns are already excluded.
+    """
+    txt = _user_text(o)
+    return _HARNESS_BLOCK.sub("", txt).strip() if txt else ""
+
+
+def _line_is_human(line):
+    """True when this JSONL line is a genuine human-typed turn. Boundary marker for the
+    self-share metric only; it never changes what is attributed to a run.
+
+    The tool_result fast path is not a shortcut in meaning: _user_text already returns ""
+    for a tool_result turn, so this only skips the JSON parse for the lines that dominate
+    a long transcript. Without it, a multi-GB corpus pays a full parse per tool result.
+    """
+    if '"user"' not in line or '"tool_result"' in line:
+        return False
+    try:
+        o = json.loads(line)
+    except (json.JSONDecodeError, ValueError):
+        return False
+    return bool(_human_says(o))
 
 
 def _line_invokes(line, target):
@@ -307,6 +369,15 @@ def find_runs(target, claude_dir):
         # billed work BEFORE the invocation means step 0 inherits prior context
         run.mid_session = any('"usage"' in lines[i] and '"assistant"' in lines[i]
                               for i in range(start))
+        # How much of that span ran before the human spoke again. The span itself is
+        # left alone deliberately: a conversational skill legitimately continues across
+        # follow-up turns, so hard-cutting here would UNDER-count those. Measuring the
+        # share instead exposes a tail-absorbed run without inventing a heuristic.
+        humans = [j for j in range(start + 1, end) if _line_is_human(lines[j])]
+        human = humans[0] if humans else end
+        run.human_turns = len(humans)
+        run.self_steps = (len(run.steps) if human >= end else
+                          len(trace_run(lines[start:human], session, project, path).steps))
         if run.steps:
             runs.append(run)
     return runs
@@ -366,6 +437,10 @@ def find_agent_runs(target, claude_dir):
                 continue
             run = trace_run(alines, f"agent-{aid}", project, apath)
             if run.steps:
+                # An agent's transcript IS its own file: every step in it belongs to the
+                # agent, so the span cannot absorb a session tail. Self-share is 1.0 by
+                # construction, not by measurement.
+                run.self_steps = len(run.steps)
                 runs.append(run)   # a subagent file starts at spawn: never mid-session
     return runs
 
@@ -657,6 +732,20 @@ def measure(runs, pricing, checklist=None):
     m["overhead_fresh_n"] = len(fresh)
     m["overhead_mid_n"] = len(runs) - len(fresh)
     m["out_share"] = _med_range([p["out_share"] for p in per])
+    # Attribution self-check: the median share of each run that ran before the human
+    # spoke again. Low means the documented span rule is crediting this skill with the
+    # tail of long sessions, so its tokens/run is an upper bound, not a measurement.
+    m["self_share"] = _med_range([r.self_share for r in runs])
+    m["human_turns"] = _med_range([r.human_turns for r in runs])
+    # A run is "tail-heavy" only when BOTH hold: little of it ran before the human spoke
+    # again, AND the span swallowed many conversational turns. Self-share alone flags every
+    # interactive skill (a slash command you answer once reads ~0% and is still fine), so
+    # it cannot rank; the turn count is what separates one invocation from a whole session.
+    ck2 = checklist or {}
+    low_ss = ck2.get("low_self_share", LOW_SELF_SHARE)
+    tail_t = ck2.get("tail_turns", TAIL_TURNS)
+    m["tail_runs"] = sum(1 for r in runs
+                         if r.self_share < low_ss and r.human_turns >= tail_t)
     m["agent_spawns"] = _med_range([p["agent_spawns"] for p in per])
     m["fallback_calls"] = sum(p["fallback_calls"] for p in per)
     m["parse_errors"] = sum(r.parse_errors for r in runs)
@@ -719,7 +808,7 @@ def diagnose(runs, m, pricing, checklist, shared=False):
         saving="Each avoided re-read saves the file's tokens plus one extra billed turn." if total_rereads else None))
 
     # 2. Cache breakage: cache_read collapses vs the prior step mid-run.
-    breaks, rewarm_tokens, bx = 0, 0, None
+    breaks, rewarm_tokens, rewarm_usd, bx = 0, 0, 0.0, None
     for pi, r in enumerate(runs):
         cr = per[pi]["cr_series"]
         # start at k=1 so the step0->step1 transition is checked; step 0's cache-read is
@@ -727,15 +816,25 @@ def diagnose(runs, m, pricing, checklist, shared=False):
         for k in range(1, len(cr)):
             if cr[k - 1] > 50_000 and cr[k] < cr[k - 1] * 0.5:
                 breaks += 1
-                rewarm_tokens += r.steps[k].cache_write
+                st = r.steps[k]
+                rewarm_tokens += st.cache_write
+                # Cache writes bill at a known multiple of the input rate, and those
+                # multipliers are already in pricing.json, so this re-warm IS priceable
+                # with data in hand. Same formula step_cost uses, so it cannot drift.
+                p, _ = price_for(st.model, pricing)
+                w5 = p.get("cache_write_5m_multiplier", pricing["cache_write_5m_multiplier"])
+                w1 = p.get("cache_write_1h_multiplier", pricing["cache_write_1h_multiplier"])
+                rewarm_usd += (st.cc5 * p["input"] * w5 + st.cc1 * p["input"] * w1) / 1e6
                 if bx is None:
-                    bx = (r.steps[k].idx, cr[k - 1], cr[k])
+                    bx = (st.idx, cr[k - 1], cr[k])
     findings.append(_finding(
         "cache_break", "Cache invalidation mid-run", breaks > 0,
         fired_msg=(f"{breaks} step(s) where the cached prefix collapsed and was re-paid"
                    + (f"; first at step {bx[0]} ({bx[1]:,}->{bx[2]:,} cache-read tok)" if bx else "")),
         clean_msg="The cache prefix held across each run; no mid-run re-warm detected.",
-        saving=(f"~{rewarm_tokens:,} cache-write tokens re-paid; stabilize prompt order to avoid."
+        saving=(f"~{rewarm_tokens:,} cache-write tokens re-paid"
+                + (f" ({fmt_usd(rewarm_usd)})" if rewarm_usd >= 0.01 else "")
+                + "; stabilize prompt order to avoid."
                 if rewarm_tokens else None)))
 
     # 3. Heavy recon in the main thread (a subagent digest would shrink it).
@@ -1407,10 +1506,15 @@ def render(target, m, runs, findings, recs, pricing, shared=False,
     grade = efficiency_grade(m, findings)
     kind = "Simple process" if shape["fired"] else "Multi-stage workflow"
 
-    # combined savings across fired recs, for the hero + rec total
+    # Combined savings across fired recs, for the hero + rec total. `combined` is a TOTAL
+    # across every observed run, so the denominator must be the observed spend across those
+    # same runs, not one run's median. Dividing a total by a per-run median compares two
+    # different units; it read as a plausible 93% until a correctly-priced check pushed it
+    # to 2373% and exposed it. (Found while fixing issue #1; present since 0.1.0.)
     combined = sum(_saving_usd(r["saving"]) for r in recs)
     med_cost = m["cost"]["median"] or 1
-    pct = combined / med_cost if med_cost else 0
+    observed_spend = sum(p["cost"] for p in m["per_run"]) or (med_cost * max(m["n_runs"], 1))
+    pct = combined / observed_spend if observed_spend else 0
 
     # Tokens lead by default: on a flat subscription the token/context budget is the scarce
     # resource, and the dollar figure is counterfactual. --dollars restores cost as the lead.
@@ -1520,10 +1624,17 @@ def render(target, m, runs, findings, recs, pricing, shared=False,
         recs_html = ["<p class='section-sub'>No efficiency flag fired. This skill is already lean.</p>"]
     rec_total = ""
     if combined > 0.01:
+        # Say plainly which fired checks are NOT in this number. A combined figure that
+        # silently omits its own biggest finding understates the report. (Issue #1.)
+        unpriced = [r["title"] for r in recs if _saving_usd(r["saving"]) <= 0]
+        not_priced = (" Not included: " + esc("; ".join(unpriced))
+                      + ", whose savings are measured in tokens, not dollars."
+                      if unpriced else "")
         rec_total = (f"<div class='rec-total'>Combined modeled opportunity: "
                      f"<b>~{fmt_usd(combined)} across the {n} runs observed</b> · roughly "
-                     f"<b>{pct:.0%}</b> of median run cost, as a modeled upper bound. "
-                     f"Validate after changing the workflow.</div>")
+                     f"<b>{pct:.0%}</b> of the {fmt_usd(observed_spend)} observed across them, "
+                     f"as a modeled upper bound. "
+                     f"Validate after changing the workflow.{not_priced}</div>")
 
     privacy = ("<b>Shared report.</b> Project names, file basenames, and custom tool names are "
                "aliased, and this variant passed the leak guard before it was written. It is "
@@ -1549,6 +1660,22 @@ def render(target, m, runs, findings, recs, pricing, shared=False,
                        f"transcript, so a spawned agent shows as its spawn plus the digest it "
                        f"returned, not its internal token cost.")
     notes = []
+    # Quantify the cost of that attribution rule instead of only disclosing it: how much
+    # of the median run actually ran before the human typed again. (Issue #1.)
+    ss = m.get("self_share") or {}
+    if ss.get("n"):
+        share, turns = ss["median"], (m.get("human_turns") or {}).get("median", 0)
+        tail_n = m.get("tail_runs", 0)
+        if tail_n > m["n_runs"] / 2:
+            notes.append(f"Attribution warning: the median run is only {share:.0%} self-contained "
+                         f"and spans {turns:.0f} of your typed turns, so {tail_n} of "
+                         f"{m['n_runs']} run(s) are measuring a whole conversation rather than one "
+                         f"invocation. Read the totals as an upper bound on this skill's own cost "
+                         f"and treat the step trace, not the headline numbers, as the evidence.")
+        else:
+            notes.append(f"The median run is {share:.0%} self-contained and spans {turns:.0f} of "
+                         f"your typed turns, so the totals below are this skill's own work rather "
+                         f"than the tail of a longer session.")
     if m.get("fallback_calls"):
         notes.append(f"{m['fallback_calls']} call(s) had an unrecognized model id and were "
                      f"priced at the fallback rate; add the model to pricing.json for "
@@ -1580,7 +1707,7 @@ def render(target, m, runs, findings, recs, pricing, shared=False,
       <div class="grade"><span class="glabel">Efficiency<br>Grade<span class="gnote">heuristic{' · &lt;3 runs' if not m['enough_for_average'] else ''}</span></span>
         <span class="gval">{esc(grade[0])}<small>{esc(grade[1:])}</small></span></div>
       <div style="font-size:11.5px;color:var(--text-mute);text-align:right;max-width:230px">
-        {('The opportunities below model up to <span style="color:var(--ember-hot)">' + f'{pct:.0%}</span> of median run cost.') if combined > 0.01 else (f'{fired_n} flag(s) fired; the ranked opportunities below carry token, not dollar, estimates.' if fired_n else 'No material waste found; the workflow runs lean.')}
+        {('The opportunities below model up to <span style="color:var(--ember-hot)">' + f'{pct:.0%}</span> of the spend observed across these runs.') if combined > 0.01 else (f'{fired_n} flag(s) fired; the ranked opportunities below carry token, not dollar, estimates.' if fired_n else 'No material waste found; the workflow runs lean.')}
         <span class="gradekey">Grade: 100 base, &minus;8 per fired flag, penalized for cache &lt;90% and output &gt;6%, floored at 40. A relative signal, not a benchmark.</span></div>
     </div>
   </div>
@@ -1772,7 +1899,10 @@ def audit_all(claude_dir, pricing, checklist):
         rows.append({"name": name, "kind": kind, "n_runs": m["n_runs"],
                      "tokens": m["tokens"]["median"], "steps": m["steps"]["median"],
                      "cost": m["cost"]["median"], "flags": flags,
-                     "enough": m["enough_for_average"]})
+                     "enough": m["enough_for_average"],
+                     "self_share": m["self_share"]["median"],
+                     "turns": m["human_turns"]["median"],
+                     "tail": m["tail_runs"] > m["n_runs"] / 2})
     rows.sort(key=lambda r: -r["tokens"])
     return rows
 
@@ -1977,19 +2107,34 @@ def _run(args, ap):
             print(f"No skill or agent runs found (scanned {nf} transcript file(s)).")
             return 1
         w = max(len(r["name"]) for r in rows)
-        print(f"{'NAME'.ljust(w)}  KIND   RUNS  TOK/RUN   STEPS  $/RUN*  FLAGS")
-        any_thin = False
+        low = checklist.get("low_self_share", LOW_SELF_SHARE)
+        tail_t = checklist.get("tail_turns", TAIL_TURNS)
+        print(f"{'NAME'.ljust(w)}  KIND   RUNS  TOK/RUN   STEPS  $/RUN*  SELF  TURNS  FLAGS")
+        any_thin = any_tail = False
         for r in rows:
             thin = "" if r["enough"] else "~"
             if not r["enough"]:
                 any_thin = True
+            tail = "!" if r["tail"] else ""
+            if tail:
+                any_tail = True
             print(f"{r['name'].ljust(w)}  {r['kind']:<5}  {r['n_runs']:>4}  "
                   f"{fmt_tok(r['tokens']):>6}{thin:<1}  {r['steps']:>5.0f}  "
-                  f"{fmt_usd(r['cost']):>6}  {r['flags']:>5}")
+                  f"{fmt_usd(r['cost']):>6}  {r['self_share']:>3.0%}  "
+                  f"{r['turns']:>4.0f}{tail:<1}  {r['flags']:>5}")
         print(f"\n{len(rows)} name(s), worst-first by median tokens. Audit one: --skill <name>")
         if any_thin:
             print(f"~ = fewer than {checklist.get('min_runs_for_average', MIN_RUNS_FOR_AVERAGE)} "
                   f"runs, so the figure is observed, not a median.")
+        print("SELF  = share of the run that ran before you typed again (100% for agents, which\n"
+              "        trace their own file). TURNS = your typed turns inside the attributed span.\n"
+              "        A run spans from its invocation to the end of the session, so a low SELF\n"
+              "        with high TURNS means the row is measuring a whole conversation, not one\n"
+              "        invocation, and its TOK/RUN is an upper bound rather than the skill's cost.")
+        if any_tail:
+            print(f"! = most runs are under {low:.0%} self-contained AND span {tail_t}+ of your "
+                  f"turns.\n    Rank these below their position here; audit them with --skill to "
+                  f"see the real span.")
         print("* $/run is counterfactual metered cost (pricing.json), not a bill.")
         return 0
 
@@ -2035,8 +2180,10 @@ def _run(args, ap):
         # report's own vocabulary ("run reconstructed..."), which used to crash the guard
         # with a false "content leak". Redaction still blanks EVERY basename in the output;
         # the guard only backstops the ones that could actually identify someone.
+        # OWN_FILES are excluded for the same reason: the report prints them as boilerplate,
+        # so they can never be evidence of the user's data, and keeping them guarantees a raise.
         basenames = {t for r in runs for s in r.steps for t in s.read_targets
-                     if _identifying(t)}
+                     if _identifying(t) and t not in OWN_FILES}
         hidden_tools = redact_for_share(m, runs)
         forbidden = (list(projects) + [acct, home_user]
                      + list(basenames) + list(hidden_tools)) if runs else []
@@ -2058,7 +2205,9 @@ def _run(args, ap):
                 "n_runs": m["n_runs"], "enough_for_average": m["enough_for_average"],
                 "window": list(m["window"]),
                 "medians": {k: m[k]["median"] for k in
-                            ("steps", "tokens", "cost", "cache_hit", "overhead", "out_share")},
+                            ("steps", "tokens", "cost", "cache_hit", "overhead",
+                             "out_share", "self_share", "human_turns")},
+                "tail_runs": m["tail_runs"],
                 "findings": [{"key": f["key"], "fired": f["fired"]} for f in findings]}
         if args.shared:
             assert_no_leak(json.dumps(blob), forbidden)

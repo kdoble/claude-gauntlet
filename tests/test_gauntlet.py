@@ -8,6 +8,7 @@ The load-bearing tests are the ones proving a guard is NOT vacuous:
 A checker never seen to fail is not a checker; these make failure observable.
 """
 import json
+import re
 import os
 import sys
 import tempfile
@@ -888,6 +889,145 @@ class HardeningAndHonesty(unittest.TestCase):
         html = _demo_report()
         self.assertIn("reads and parses your transcripts", html)
         self.assertNotIn("never leaves this machine", html)  # the old overclaim
+
+    def test_self_share_catches_tail_absorbed_run(self):
+        """KNOWN-BAD ARTIFACT: a skill invoked at step 1 of a session whose remaining
+        work belongs to the human's later turns. Before v0.2.0 the run reported 100% of
+        that session as the skill's cost with nothing to distinguish it from real work.
+        The metric must FAIL this fixture (low share), or it is not a checker."""
+        lines = [_invoke_line("tailskill"),
+                 _usage_line("m1", "claude-opus-4-8", inp=10, ccr=1000, out=10)]
+        # the human drives a long unrelated conversation; none of it is the skill's doing
+        for i in range(2, 14):
+            lines.append(json.dumps({"type": "user", "message": {
+                "role": "user", "content": f"unrelated follow-up number {i}"}}))
+            lines.append(_usage_line(f"m{i}", "claude-opus-4-8", inp=10, ccr=1000, out=10))
+        with tempfile.TemporaryDirectory() as d:
+            _write_session(d, "s1", lines)
+            runs = g.find_runs("tailskill", d)
+        self.assertEqual(len(runs), 1)
+        r = runs[0]
+        self.assertEqual(len(r.steps), 13)               # attribution UNCHANGED, by design
+        self.assertEqual(r.self_steps, 1)                # only step 1 is really the skill's
+        self.assertLess(r.self_share, g.LOW_SELF_SHARE)
+        self.assertEqual(r.human_turns, 12)
+        m = g.measure(runs, PRICING, {})
+        self.assertEqual(m["tail_runs"], 1)
+
+    def test_one_follow_up_turn_is_not_a_tail_absorbed_run(self):
+        """The other half of the rule, and the reason self-share ALONE is not enough: a
+        normal interactive skill you answer once reads near 0% self-contained. Flagging
+        it would fire on almost every skill and rank nothing. It must NOT be flagged."""
+        lines = [_invoke_line("chatty"),
+                 _usage_line("m1", "claude-opus-4-8", inp=10, ccr=1000, out=10),
+                 json.dumps({"type": "user", "message": {
+                     "role": "user", "content": "yes, go ahead"}}),
+                 _usage_line("m2", "claude-opus-4-8", inp=10, ccr=1000, out=10),
+                 _usage_line("m3", "claude-opus-4-8", inp=10, ccr=1000, out=10)]
+        with tempfile.TemporaryDirectory() as d:
+            _write_session(d, "s1", lines)
+            runs = g.find_runs("chatty", d)
+        r = runs[0]
+        self.assertLess(r.self_share, g.LOW_SELF_SHARE)   # low share...
+        self.assertLess(r.human_turns, g.TAIL_TURNS)      # ...but only one turn
+        self.assertEqual(g.measure(runs, PRICING, {})["tail_runs"], 0)   # so: not flagged
+
+    def test_self_share_is_full_when_human_never_speaks_again(self):
+        """The clean side of the same check: an uninterrupted run is 100% self-contained,
+        so the metric does not simply flag everything."""
+        lines = [_invoke_line("cleanskill")]
+        for i in range(1, 6):
+            lines.append(_usage_line(f"m{i}", "claude-opus-4-8", inp=10, ccr=1000, out=10))
+        with tempfile.TemporaryDirectory() as d:
+            _write_session(d, "s1", lines)
+            runs = g.find_runs("cleanskill", d)
+        self.assertEqual(runs[0].self_share, 1.0)
+        self.assertEqual(g.measure(runs, PRICING, {})["tail_runs"], 0)
+
+    def test_harness_injected_turn_is_not_a_human_turn(self):
+        """A system-reminder is written by the harness, not typed by a person. If it
+        counted as a human turn, every run would look tail-absorbed and the metric would
+        be noise. Load-bearing: this is the same class of bug as a quoted command tag."""
+        reminder = json.dumps({"type": "user", "message": {
+            "role": "user",
+            "content": "<system-reminder>background context</system-reminder>"}})
+        self.assertFalse(g._line_is_human(reminder))
+        real = json.dumps({"type": "user", "message": {
+            "role": "user",
+            "content": "do the thing<system-reminder>noise</system-reminder>"}})
+        self.assertTrue(g._line_is_human(real))
+        # a tool_result turn is never human, whatever it quotes
+        self.assertFalse(g._line_is_human(_result_line("t1", "user typed this")))
+
+    def test_agent_runs_are_self_contained_by_construction(self):
+        """An agent traces its own file, so it can never absorb a session tail. Guard
+        against the default-zero regression that would flag every agent as tail-heavy."""
+        run = g.Run("agent-x", "proj", "p")
+        self.assertEqual(run.self_share, 1.0)   # no steps -> no false tail flag
+
+    def test_cache_rewarm_carries_dollars_into_combined_total(self):
+        """KNOWN-BAD ARTIFACT: a run with a large mid-run cache collapse. Before v0.2.0
+        cache_break's saving was tokens-only, so _saving_usd returned 0.0 and the
+        headline combined figure silently excluded the report's own biggest finding."""
+        lines = [_invoke_line("cachey"),
+                 _usage_line("m1", "claude-opus-4-8", inp=10, ccr=400_000, out=10),
+                 # prefix collapses and is re-paid as cache-write
+                 _usage_line("m2", "claude-opus-4-8", inp=10, ccr=1_000,
+                             cc5=400_000, out=10)]
+        with tempfile.TemporaryDirectory() as d:
+            _write_session(d, "s1", lines)
+            runs = g.find_runs("cachey", d)
+        m = g.measure(runs, PRICING, {})
+        findings = g.diagnose(runs, m, PRICING, {})
+        cb = next(f for f in findings if f["key"] == "cache_break")
+        self.assertTrue(cb["fired"])
+        # 400k cache-write tok on Opus at 1.25x the $5/MTok input rate = $2.50
+        self.assertAlmostEqual(g._saving_usd(cb["saving"]), 2.50, places=2)
+        self.assertGreater(g._saving_usd(cb["saving"]), 0.0)  # the v0.1.0 failure mode
+
+    def test_combined_total_names_what_it_does_not_price(self):
+        """The combined figure must disclose the fired checks it excludes, rather than
+        presenting a partial sum as the whole opportunity."""
+        html = _demo_report()
+        if "Combined modeled opportunity" in html:
+            self.assertIn("Not included:", html)
+            self.assertIn("measured in tokens, not dollars", html)
+
+    def test_combined_pct_compares_like_units(self):
+        """KNOWN-BAD: `combined` is a total across N runs. Dividing it by a PER-RUN median
+        and calling the result a percentage of cost is a unit error. It shipped in 0.1.0
+        reading a plausible 93%, and only became visibly absurd (2373%) once the cache
+        re-warm was priced. The percentage must never exceed 100% of observed spend."""
+        html = _demo_report()
+        for pct in re.findall(r">(\d+)%</span> of the spend observed", html):
+            self.assertLessEqual(int(pct), 100, "savings cannot exceed the spend they come from")
+        self.assertNotIn("of median run cost", html)   # the old, unit-mismatched label
+
+    def test_shared_report_survives_audit_of_a_skill_that_reads_our_own_files(self):
+        """KNOWN-BAD: --shared crashed outright when the audited skill happened to read a
+        file named like one of GAUNTLET's own (pricing.json). The report prints that name
+        in its own methodology text, so the guard raised on its own boilerplate and no
+        shared report could ever be produced. Found on real data, present since 0.1.0."""
+        lines = [_invoke_line("cfg")]
+        for i in range(2):
+            lines.append(_usage_line(f"m{i}", "claude-opus-4-8", inp=5, ccr=100, out=5,
+                         tool="Read", tool_input={"file_path": "/x/pricing.json"}))
+        with tempfile.TemporaryDirectory() as d:
+            _write_session(d, "s1", lines)
+            runs = g.find_runs("cfg", d)
+            m = g.measure(runs, PRICING)
+            findings = g.diagnose(runs, m, PRICING, {}, shared=True)
+            basenames = {t for r in runs for s in r.steps for t in s.read_targets
+                         if g._identifying(t) and t not in g.OWN_FILES}
+            self.assertNotIn("pricing.json", basenames)   # excluded, so the guard can pass
+            forbidden = list({r.project for r in runs}) + list(basenames)
+            g.redact_for_share(m, runs)
+            html = g.render("cfg", m, runs, findings,
+                            g.recommendations(findings, m), PRICING, shared=True)
+            g.assert_no_leak(html, forbidden)             # must NOT raise
+        # and a genuinely identifying basename is still guarded
+        self.assertTrue(g._identifying("ACME_T12.xlsx"))
+        self.assertNotIn("ACME_T12.xlsx", g.OWN_FILES)
 
     def test_console_entrypoint_is_claude_gauntlet_with_alias(self):
         # 3.9 has no tomllib; assert on the raw text of the packaging config.

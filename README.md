@@ -155,6 +155,24 @@ a heuristic, and it can distort medians, so it is stated plainly:
 - An **agent** run is one spawn of that agent (`subagent_type`), traced from the agent's own
   transcript file, so its internal steps are fully counted.
 
+**Two columns tell you when that heuristic is distorting a number.** Because a skill run spans to
+end of session, a skill invoked early in a long session absorbs everything that follows it,
+including work you asked for afterwards in plain prose.
+
+- `SELF` is the share of the run that executed *before you typed again*. 100% means structurally
+  self-contained; agents are always 100% because they trace their own transcript file.
+- `TURNS` is how many of your typed turns the attributed span swallowed.
+
+A row is marked `!` only when both signals agree: mostly-not-self-contained **and** five or more
+of your turns inside the span. `SELF` alone is not a usable filter, because a normal interactive
+skill that you answer once also reads near 0%, and flagging that would fire on nearly every row.
+Low `SELF` with high `TURNS` is the real signal that a row is measuring a conversation rather
+than an invocation, and that its tokens/run is an upper bound rather than the skill's own cost.
+
+The span itself is deliberately left alone: a conversational skill legitimately continues across
+follow-up turns, so cutting at the first human turn would under-count those instead. The
+distortion is measured and disclosed, never silently "corrected."
+
 ## Honesty rules built in
 
 - Costs are counterfactual metered API pricing (`pricing.json`, editable, dated, with a source
@@ -195,7 +213,17 @@ across Python 3.9 and 3.13 (`.github/workflows/tests.yml`).
 - Historical mining only; it does not re-run your skill (a live "run it K times" mode is a
   possible future addition).
 - Skill-run boundaries are heuristic (next-different-skill or end of session); work done after
-  the skill finished in the same session is attributed to it.
+  the skill finished in the same session is attributed to it. The `SELF` column quantifies how
+  much of a given row this affects; read a low-`SELF` row as an upper bound.
+- **Headless runs are not attributable.** A session launched with `claude -p` (scheduled or
+  unattended work) produces no `<command-name>` tag and no `Skill` tool call, so nothing ties it
+  to a skill name. That spend is real and is invisible to a per-skill audit. If unattended jobs
+  are a meaningful share of your usage, the auditable-name count is a floor, not a census of what
+  you run.
+- **Windows console encoding.** The report is written UTF-8 and is correct on disk, but it
+  contains characters outside cp1252 (`→`, `·`, typographic dashes). Piping extracted report text
+  through a default Windows console will raise `UnicodeEncodeError`. Set `PYTHONUTF8=1` or
+  `chcp 65001` in any tooling that re-reads the report. This does not affect the report itself.
 - For skill audits, subagent cost shows as spawn-plus-digest, not stitched into the parent
   trace. Audit the agent directly to see inside it. Stitching is on the roadmap.
 - **Transcript schema:** parses the Claude Code JSONL shape as of mid-2026 (`message.usage`,
